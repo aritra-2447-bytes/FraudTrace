@@ -20,47 +20,47 @@ export const TopAccountsWidget: React.FC<TopAccountsWidgetProps> = ({ accounts }
 
   return (
     <div
-      className={`border rounded-xl p-5 flex flex-col shadow-lg transition-colors ${
-        isLight ? 'bg-white border-slate-200' : 'bg-[#1a1d2e] border-[#2a2d3e]'
+      className={`border rounded-2xl p-4 sm:p-5 flex flex-col transition-colors ${
+        isLight ? 'bg-white border-slate-200' : 'bg-[#161926] border-[#232738]'
       }`}
     >
       <div
         className={`flex items-center justify-between pb-3 mb-3 border-b ${
-          isLight ? 'border-slate-200' : 'border-[#2a2d3e]'
+          isLight ? 'border-slate-200' : 'border-[#232738]'
         }`}
       >
         <div>
-          <h3 className={`text-sm font-bold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+          <h3 className={`text-sm font-extrabold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
             <UserX className="w-4 h-4 text-red-500" />
             <span>Top Flagged Accounts</span>
           </h3>
-          <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Highest individual risk profile</p>
+          <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Highest individual risk profile</p>
         </div>
-        <span className={`text-[11px] font-mono ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Ranked Top 5</span>
+        <span className={`text-[11px] font-bold ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>Ranked Top 5</span>
       </div>
 
       <div className="space-y-2.5">
         {accounts.slice(0, 5).map((acc, index) => (
           <div
             key={acc.account_id}
-            className={`p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors ${
+            className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
               isLight
-                ? 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                : 'bg-[#0f1117] border-[#2a2d3e] hover:border-slate-600'
+                ? 'bg-slate-50/70 border-slate-200 hover:border-slate-300'
+                : 'bg-[#0f1117] border-[#232738] hover:border-slate-600'
             }`}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <span
-                className={`w-6 h-6 rounded border flex items-center justify-center font-mono text-xs font-bold ${
+                className={`w-6 h-6 rounded-lg border flex items-center justify-center text-xs font-extrabold ${
                   isLight
                     ? 'bg-white border-slate-200 text-slate-500'
-                    : 'bg-[#1a1d2e] border-[#2a2d3e] text-slate-400'
+                    : 'bg-[#161926] border-[#232738] text-slate-400'
                 }`}
               >
                 #{index + 1}
               </span>
               <div>
-                <div className={`font-mono text-xs font-bold ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
+                <div className={`text-xs font-extrabold ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>
                   {acc.account_id}
                 </div>
                 <div className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -71,7 +71,7 @@ export const TopAccountsWidget: React.FC<TopAccountsWidgetProps> = ({ accounts }
 
             <div className="flex items-center gap-2">
               <span
-                className={`px-2 py-0.5 rounded border font-mono text-xs font-bold ${getRiskColor(
+                className={`px-2 py-0.5 rounded-md border text-xs font-bold ${getRiskColor(
                   acc.risk_score
                 )}`}
               >
@@ -79,7 +79,7 @@ export const TopAccountsWidget: React.FC<TopAccountsWidgetProps> = ({ accounts }
               </span>
               <button
                 onClick={() => setSelectedAccount(acc)}
-                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer"
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-bold cursor-pointer min-h-[36px] px-2 flex items-center justify-center"
               >
                 View
               </button>
@@ -91,11 +91,13 @@ export const TopAccountsWidget: React.FC<TopAccountsWidgetProps> = ({ accounts }
       {/* Quick View Modal */}
       {selectedAccount && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1a1d2e] border border-[#2a2d3e] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-[#2a2d3e]">
+          <div className={`border rounded-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200 ${
+            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#161926] border-[#232738] text-slate-100'
+          }`}>
+            <div className={`flex items-center justify-between pb-3 border-b ${isLight ? 'border-slate-200' : 'border-[#232738]'}`}>
               <div className="flex items-center gap-2">
-                <AlertOctagon className="w-5 h-5 text-red-400" />
-                <h4 className="font-bold font-mono text-slate-100">
+                <AlertOctagon className="w-5 h-5 text-red-500" />
+                <h4 className="font-extrabold text-base">
                   Account Dossier: {selectedAccount.account_id}
                 </h4>
               </div>
@@ -107,28 +109,28 @@ export const TopAccountsWidget: React.FC<TopAccountsWidgetProps> = ({ accounts }
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-300">
-              <div className="flex justify-between p-2 rounded bg-[#0f1117] border border-[#2a2d3e]">
-                <span className="text-slate-400">Calculated Anomaly Score:</span>
-                <span className="font-mono font-bold text-red-400">
+            <div className="space-y-3 text-xs">
+              <div className={`flex justify-between p-3 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0f1117] border-[#232738]'}`}>
+                <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>Calculated Anomaly Score:</span>
+                <span className="font-extrabold text-red-500">
                   {selectedAccount.risk_score} / 100
                 </span>
               </div>
-              <div className="flex justify-between p-2 rounded bg-[#0f1117] border border-[#2a2d3e]">
-                <span className="text-slate-400">Linked Suspicious Txns:</span>
-                <span className="font-mono font-bold text-slate-100">
+              <div className={`flex justify-between p-3 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0f1117] border-[#232738]'}`}>
+                <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>Linked Suspicious Txns:</span>
+                <span className="font-bold">
                   {selectedAccount.linked_suspicious_txns}
                 </span>
               </div>
-              <div className="flex justify-between p-2 rounded bg-[#0f1117] border border-[#2a2d3e]">
-                <span className="text-slate-400">Holder Classification:</span>
-                <span className="font-semibold text-indigo-400">
+              <div className={`flex justify-between p-3 rounded-xl border ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0f1117] border-[#232738]'}`}>
+                <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>Holder Classification:</span>
+                <span className="font-bold text-indigo-500">
                   {selectedAccount.holder_category || 'High-Frequency Trader'}
                 </span>
               </div>
-              <div className="p-3 rounded bg-[#0f1117] border border-[#2a2d3e] space-y-1">
-                <div className="text-slate-400 font-semibold">Primary Risk Flag:</div>
-                <div className="text-slate-200">
+              <div className={`p-3 rounded-xl border space-y-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0f1117] border-[#232738]'}`}>
+                <div className={`font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>Primary Risk Flag:</div>
+                <div className={isLight ? 'text-slate-600' : 'text-slate-300'}>
                   {selectedAccount.primary_flag || 'High-frequency structuring nexus node with rapid pass-through.'}
                 </div>
               </div>
@@ -137,7 +139,7 @@ export const TopAccountsWidget: React.FC<TopAccountsWidgetProps> = ({ accounts }
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setSelectedAccount(null)}
-                className="px-4 py-2 bg-indigo-600 text-white font-medium text-xs rounded-lg hover:bg-indigo-500 cursor-pointer"
+                className="px-5 h-10 bg-indigo-600 text-white font-bold text-xs rounded-xl hover:bg-indigo-500 cursor-pointer"
               >
                 Close Dossier
               </button>

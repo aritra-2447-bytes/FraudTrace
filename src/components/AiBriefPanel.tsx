@@ -11,16 +11,16 @@ interface AiBriefPanelProps {
 
 function generateClientFallbackBrief(pattern: PatternDetail, entity: EntityInvestigation | null): string {
   const vpnStatus = entity?.device_telematics.vpn_detected
-    ? 'High Risk: Active VPN/Proxy usage detected during funds transit.'
-    : 'No active VPN detected on primary hardware.';
+      ? 'High Risk: Active VPN/Proxy usage detected during funds transit.'
+      : 'No active VPN detected on primary hardware.';
 
   const panMatch = entity?.government_verifications.pan_verification.status === 'VALID'
-    ? `Validated (${entity.government_verifications.pan_verification.name_match})`
-    : 'Invalid or unverified';
+      ? `Validated (${entity.government_verifications.pan_verification.name_match})`
+      : 'Invalid or unverified';
 
   const tdsMismatch = entity?.government_verifications.tds_tax_deductions.mismatch_flag
-    ? 'Critical Mismatch: Declared transaction volume significantly diverges from reported TDS tax filings.'
-    : 'Normal tax deduction alignment.';
+      ? 'Critical Mismatch: Declared transaction volume significantly diverges from reported TDS tax filings.'
+      : 'Normal tax deduction alignment.';
 
   const nodeIds = pattern.graph.nodes.map((n) => n.id).slice(0, 3).join('`, `');
 
@@ -92,165 +92,165 @@ export const AiBriefPanel: React.FC<AiBriefPanelProps> = ({ pattern, entity }) =
   }, [pattern.pattern_id]);
 
   return (
-    <div
-      className={`border rounded-xl p-5 shadow-lg flex flex-col space-y-4 transition-colors ${
-        isLight ? 'bg-white border-slate-200' : 'bg-[#1a1d2e] border-[#2a2d3e]'
-      }`}
-    >
-      {/* Header */}
       <div
-        className={`flex items-center justify-between pb-3 border-b ${
-          isLight ? 'border-slate-200' : 'border-[#2a2d3e]'
-        }`}
+          className={`border rounded-2xl p-4 sm:p-5 flex flex-col space-y-4 transition-colors ${
+              isLight ? 'bg-white border-slate-200' : 'bg-[#161926] border-[#232738]'
+          }`}
       >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-500">
-            <Bot className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className={`text-sm font-bold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
-              <span>Investigative Brief</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded bg-indigo-500/20 text-indigo-500 border border-indigo-500/30">
+        {/* Header */}
+        <div
+            className={`flex items-center justify-between pb-3 border-b ${
+                isLight ? 'border-slate-200' : 'border-[#232738]'
+            }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-500 shrink-0">
+              <Bot className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className={`text-sm font-extrabold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+                <span>AI Investigative Brief</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-500/20 text-indigo-500 border border-indigo-500/30">
                 <Sparkles className="w-3 h-3 text-indigo-500" />
                 Gemini 2.5 Flash
               </span>
-            </h3>
-            <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              Plain-Language Case Intelligence Report
-            </p>
+              </h3>
+              <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                Automated Plain-Language Case Intelligence Report
+              </p>
+            </div>
           </div>
-        </div>
 
-        <button
-          onClick={fetchAiBrief}
-          disabled={loading}
-          className={`p-2 border rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1 text-xs ${
-            isLight
-              ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-              : 'bg-[#0f1117] hover:bg-[#2a2d3e] border-[#2a2d3e] text-slate-300'
-          }`}
-          title="Re-generate Brief"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refresh</span>
-        </button>
-      </div>
-
-      {/* Content Area */}
-      {loading ? (
-        <div className="space-y-4 py-4 animate-pulse">
-          <div className={`h-4 rounded w-3/4 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
-          <div className="space-y-2">
-            <div className={`h-3 rounded w-full ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
-            <div className={`h-3 rounded w-5/6 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
-            <div className={`h-3 rounded w-4/6 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
-          </div>
-          <div className={`h-4 rounded w-1/2 pt-2 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
-          <div className="space-y-2">
-            <div className={`h-3 rounded w-full ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
-            <div className={`h-3 rounded w-11/12 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-indigo-500 pt-2 font-mono">
-            <Sparkles className="w-4 h-4 animate-spin" />
-            <span>Analyzing pattern topology & cross-referencing telematics...</span>
-          </div>
-        </div>
-      ) : error ? (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-500 space-y-2">
-          <div className="flex items-center gap-2 font-bold">
-            <AlertCircle className="w-4 h-4" />
-            <span>Error Generating AI Brief</span>
-          </div>
-          <p>{error}</p>
           <button
-            onClick={fetchAiBrief}
-            className="px-3 py-1 bg-red-600 text-white font-medium rounded hover:bg-red-500 cursor-pointer"
+              onClick={fetchAiBrief}
+              disabled={loading}
+              className={`p-2 border rounded-xl transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1 text-xs font-bold min-h-[36px] ${
+                  isLight
+                      ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                      : 'bg-[#0f1117] hover:bg-[#232738] border-[#232738] text-slate-300'
+              }`}
+              title="Re-generate Brief"
           >
-            Retry Generation
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
-      ) : brief ? (
-        <div className="text-xs space-y-3 leading-relaxed max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
-          <div className={`max-w-none text-xs space-y-2 ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-            <ReactMarkdown
-              components={{
-                h1: ({ node, ...props }) => (
-                  <h1
-                    className={`text-sm font-bold border-b pb-1 mt-3 mb-1 font-mono ${
-                      isLight ? 'text-indigo-600 border-slate-200' : 'text-indigo-400 border-[#2a2d3e]'
-                    }`}
-                    {...props}
-                  />
-                ),
-                h2: ({ node, ...props }) => (
-                  <h2
-                    className={`text-xs font-bold border-b pb-1 mt-3 mb-1 font-mono ${
-                      isLight ? 'text-indigo-700 border-slate-200' : 'text-indigo-300 border-[#2a2d3e]'
-                    }`}
-                    {...props}
-                  />
-                ),
-                h3: ({ node, ...props }) => (
-                  <h3
-                    className={`text-xs font-bold mt-2 mb-1 ${
-                      isLight ? 'text-slate-900' : 'text-slate-100'
-                    }`}
-                    {...props}
-                  />
-                ),
-                p: ({ node, ...props }) => (
-                  <p
-                    className={`mb-2 leading-relaxed ${
-                      isLight ? 'text-slate-700' : 'text-slate-300'
-                    }`}
-                    {...props}
-                  />
-                ),
-                ul: ({ node, ...props }) => (
-                  <ul
-                    className={`list-disc pl-4 space-y-1 my-2 ${
-                      isLight ? 'text-slate-700' : 'text-slate-300'
-                    }`}
-                    {...props}
-                  />
-                ),
-                ol: ({ node, ...props }) => (
-                  <ol
-                    className={`list-decimal pl-4 space-y-1 my-2 font-mono ${
-                      isLight ? 'text-slate-700' : 'text-slate-300'
-                    }`}
-                    {...props}
-                  />
-                ),
-                strong: ({ node, ...props }) => (
-                  <strong
-                    className={`font-bold ${
-                      isLight ? 'text-indigo-700' : 'text-indigo-300'
-                    }`}
-                    {...props}
-                  />
-                ),
-              }}
-            >
-              {brief}
-            </ReactMarkdown>
-          </div>
 
-          {generatedAt && (
-            <div
-              className={`text-[10px] pt-2 border-t flex items-center justify-between font-mono ${
-                isLight ? 'border-slate-200 text-slate-500' : 'border-[#2a2d3e] text-slate-500'
-              }`}
-            >
+        {/* Content Area */}
+        {loading ? (
+            <div className="space-y-4 py-4 animate-pulse">
+              <div className={`h-4 rounded w-3/4 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
+              <div className="space-y-2">
+                <div className={`h-3 rounded w-full ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
+                <div className={`h-3 rounded w-5/6 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
+                <div className={`h-3 rounded w-4/6 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
+              </div>
+              <div className={`h-4 rounded w-1/2 pt-2 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
+              <div className="space-y-2">
+                <div className={`h-3 rounded w-full ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
+                <div className={`h-3 rounded w-11/12 ${isLight ? 'bg-slate-200' : 'bg-[#2a2d3e]'}`}></div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-indigo-500 pt-2 font-mono">
+                <Sparkles className="w-4 h-4 animate-spin" />
+                <span>Analyzing pattern topology & cross-referencing telematics...</span>
+              </div>
+            </div>
+        ) : error ? (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-500 space-y-2">
+              <div className="flex items-center gap-2 font-bold">
+                <AlertCircle className="w-4 h-4" />
+                <span>Error Generating AI Brief</span>
+              </div>
+              <p>{error}</p>
+              <button
+                  onClick={fetchAiBrief}
+                  className="px-3 py-1 bg-red-600 text-white font-medium rounded hover:bg-red-500 cursor-pointer"
+              >
+                Retry Generation
+              </button>
+            </div>
+        ) : brief ? (
+            <div className="text-xs space-y-3 leading-relaxed max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+              <div className={`max-w-none text-xs space-y-2 ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+                <ReactMarkdown
+                    components={{
+                      h1: ({ node, ...props }) => (
+                          <h1
+                              className={`text-sm font-bold border-b pb-1 mt-3 mb-1 font-mono ${
+                                  isLight ? 'text-indigo-600 border-slate-200' : 'text-indigo-400 border-[#2a2d3e]'
+                              }`}
+                              {...props}
+                          />
+                      ),
+                      h2: ({ node, ...props }) => (
+                          <h2
+                              className={`text-xs font-bold border-b pb-1 mt-3 mb-1 font-mono ${
+                                  isLight ? 'text-indigo-700 border-slate-200' : 'text-indigo-300 border-[#2a2d3e]'
+                              }`}
+                              {...props}
+                          />
+                      ),
+                      h3: ({ node, ...props }) => (
+                          <h3
+                              className={`text-xs font-bold mt-2 mb-1 ${
+                                  isLight ? 'text-slate-900' : 'text-slate-100'
+                              }`}
+                              {...props}
+                          />
+                      ),
+                      p: ({ node, ...props }) => (
+                          <p
+                              className={`mb-2 leading-relaxed ${
+                                  isLight ? 'text-slate-700' : 'text-slate-300'
+                              }`}
+                              {...props}
+                          />
+                      ),
+                      ul: ({ node, ...props }) => (
+                          <ul
+                              className={`list-disc pl-4 space-y-1 my-2 ${
+                                  isLight ? 'text-slate-700' : 'text-slate-300'
+                              }`}
+                              {...props}
+                          />
+                      ),
+                      ol: ({ node, ...props }) => (
+                          <ol
+                              className={`list-decimal pl-4 space-y-1 my-2 font-mono ${
+                                  isLight ? 'text-slate-700' : 'text-slate-300'
+                              }`}
+                              {...props}
+                          />
+                      ),
+                      strong: ({ node, ...props }) => (
+                          <strong
+                              className={`font-bold ${
+                                  isLight ? 'text-indigo-700' : 'text-indigo-300'
+                              }`}
+                              {...props}
+                          />
+                      ),
+                    }}
+                >
+                  {brief}
+                </ReactMarkdown>
+              </div>
+
+              {generatedAt && (
+                  <div
+                      className={`text-[10px] pt-2 border-t flex items-center justify-between font-mono ${
+                          isLight ? 'border-slate-200 text-slate-500' : 'border-[#2a2d3e] text-slate-500'
+                      }`}
+                  >
               <span className="flex items-center gap-1 text-emerald-600">
                 <CheckCircle2 className="w-3 h-3" />
                 <span>Verified LLM Intelligence</span>
               </span>
-              <span>Generated: {new Date(generatedAt).toLocaleTimeString()}</span>
+                    <span>Generated: {new Date(generatedAt).toLocaleTimeString()}</span>
+                  </div>
+              )}
             </div>
-          )}
-        </div>
-      ) : null}
-    </div>
+        ) : null}
+      </div>
   );
 };

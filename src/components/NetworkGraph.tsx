@@ -169,7 +169,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({ graph }) => {
           ctx.stroke();
 
           // Label text underneath node
-          ctx.font = `${fontSize}px Inter, sans-serif`;
+          ctx.font = `${fontSize}px Arial, Helvetica, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillStyle = isLight ? '#1e293b' : '#f1f5f9';
@@ -284,29 +284,29 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({ graph }) => {
     <>
       {/* Standard In-Page Component */}
       <div
-        className={`border rounded-xl p-4 flex flex-col shadow-lg relative transition-colors ${
-          isLight ? 'bg-white border-slate-200' : 'bg-[#1a1d2e] border-[#2a2d3e]'
+        className={`border rounded-2xl p-4 sm:p-5 flex flex-col relative transition-colors ${
+          isLight ? 'bg-white border-slate-200' : 'bg-[#161926] border-[#232738]'
         }`}
       >
         {/* Header & Controls */}
         <div
           className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-2 border-b ${
-            isLight ? 'border-slate-200' : 'border-[#2a2d3e]'
+            isLight ? 'border-slate-200' : 'border-[#232738]'
           }`}
         >
           <div>
-            <h3 className={`text-sm font-bold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+            <h3 className={`text-sm font-extrabold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
               <ShieldAlert className="w-4 h-4 text-indigo-500" />
               <span>Interactive Account Transaction Topology</span>
             </h3>
-            <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+            <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
               Nodes = Accounts (color by risk score) | Edges = Transfer Amount
             </p>
           </div>
 
           {/* Search & Fullscreen Bar */}
           <div className="flex items-center gap-2">
-            <div className="relative">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
@@ -316,10 +316,10 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({ graph }) => {
                   setSearchNode(e.target.value);
                   if (e.target.value) handleFocusNode(e.target.value);
                 }}
-                className={`border rounded-md pl-8 pr-3 py-1 text-xs focus:outline-none focus:border-indigo-500 w-36 transition-colors ${
+                className={`border rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 w-full sm:w-40 transition-colors min-h-[36px] ${
                   isLight
                     ? 'bg-slate-100 border-slate-200 text-slate-900 placeholder-slate-400'
-                    : 'bg-[#0f1117] border-[#2a2d3e] text-slate-200 placeholder-slate-500'
+                    : 'bg-[#0f1117] border-[#232738] text-slate-200 placeholder-slate-500'
                 }`}
               />
             </div>
@@ -327,10 +327,10 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({ graph }) => {
             <button
               onClick={() => setIsFullscreen(true)}
               title="Full Screen View"
-              className="p-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-600 dark:text-indigo-300 rounded cursor-pointer transition-colors flex items-center gap-1.5 text-xs font-mono font-medium"
+              className="px-3 h-9 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-500 rounded-xl cursor-pointer transition-colors flex items-center gap-1.5 text-xs font-bold whitespace-nowrap min-h-[36px]"
             >
-              <Expand className="w-4 h-4 text-indigo-600" />
-              <span className="hidden md:inline">Full Screen</span>
+              <Expand className="w-4 h-4 text-indigo-500" />
+              <span className="inline">Expand</span>
             </button>
           </div>
         </div>

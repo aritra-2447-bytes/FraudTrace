@@ -8,31 +8,29 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
+  theme: 'light',
   toggleTheme: () => {},
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('fraudtrace_theme');
-    return saved === 'light' || saved === 'dark' ? saved : 'dark';
-  });
+  const [theme, setTheme] = useState<ThemeMode>('light');
 
   useEffect(() => {
-    localStorage.setItem('fraudtrace_theme', theme);
+    localStorage.setItem('fraudtrace_theme', 'light');
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme('light');
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div data-theme={theme} className={theme === 'light' ? 'light-mode' : 'dark-mode'}>
-        {children}
-      </div>
-    </ThemeContext.Provider>
+      <ThemeContext.Provider value={{ theme: 'light', toggleTheme }}>
+        <div data-theme="light" className="light-mode">
+          {children}
+        </div>
+      </ThemeContext.Provider>
   );
 };
 
 export const useTheme = () => useContext(ThemeContext);
+

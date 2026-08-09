@@ -116,33 +116,33 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
       <div
-        className={`border rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 my-8 animate-in fade-in zoom-in duration-200 ${
-          isLight ? 'bg-white border-slate-200' : 'bg-[#1a1d2e] border-[#2a2d3e]'
+        className={`border rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-5 my-auto animate-in fade-in zoom-in duration-200 ${
+          isLight ? 'bg-white border-slate-200' : 'bg-[#161926] border-[#232738]'
         }`}
       >
         {/* Header */}
         <div
           className={`flex items-center justify-between pb-3 border-b ${
-            isLight ? 'border-slate-200' : 'border-[#2a2d3e]'
+            isLight ? 'border-slate-200' : 'border-[#232738]'
           }`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-500">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-500 shrink-0">
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h3 className={`text-base font-bold font-mono ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+              <h3 className={`text-base font-extrabold ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
                 Custom ML Anomaly Detection Sandbox
               </h3>
-              <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                 Run graph pattern analysis engine on raw transaction streams
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              isLight ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-[#2a2d3e]'
+            className={`p-2 rounded-xl transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center ${
+              isLight ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-[#232738]'
             }`}
           >
             <X className="w-5 h-5" />
@@ -151,10 +151,10 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
 
         {/* Scenario Presets */}
         <div className="space-y-1.5">
-          <label className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+          <label className={`text-xs font-bold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
             Select Preset Attack Scenario:
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar -mx-1 px-1">
             {PRESET_SCENARIOS.map((scenario) => (
               <button
                 key={scenario.name}
@@ -163,10 +163,10 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
                   setResult(null);
                   setError(null);
                 }}
-                className={`px-2.5 py-1 border rounded text-xs transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 border rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
                   isLight
                     ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-                    : 'bg-[#0f1117] hover:bg-[#2a2d3e] border-[#2a2d3e] text-slate-300'
+                    : 'bg-[#0f1117] hover:bg-[#232738] border-[#232738] text-slate-300'
                 }`}
               >
                 {scenario.name}
@@ -177,18 +177,18 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
 
         {/* Input Textarea */}
         <div className="space-y-1.5">
-          <label className={`text-xs font-semibold flex items-center gap-1 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+          <label className={`text-xs font-bold flex items-center gap-1 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
             <FileCode className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Raw Transaction Stream JSON (&apos;[{`[{ from, to, amount, timestamp }]`}]&apos;)</span>
+            <span>Raw Transaction Stream JSON</span>
           </label>
           <textarea
-            rows={8}
+            rows={7}
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
-            className={`w-full border rounded-lg p-3 font-mono text-xs focus:outline-none focus:border-indigo-500 resize-none ${
+            className={`w-full border rounded-xl p-3 text-xs focus:outline-none focus:border-indigo-500 resize-none font-mono ${
               isLight
                 ? 'bg-slate-50 border-slate-200 text-slate-900'
-                : 'bg-[#0f1117] border-[#2a2d3e] text-slate-200'
+                : 'bg-[#0f1117] border-[#232738] text-slate-200'
             }`}
           />
         </div>
@@ -237,16 +237,16 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
 
         {/* Action Button Footer */}
         <div
-          className={`pt-2 flex justify-end gap-3 border-t ${
-            isLight ? 'border-slate-200' : 'border-[#2a2d3e]'
+          className={`pt-3 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t ${
+            isLight ? 'border-slate-200' : 'border-[#232738]'
           }`}
         >
           <button
             onClick={onClose}
-            className={`px-4 py-2 border text-xs font-medium rounded-lg cursor-pointer ${
+            className={`px-4 h-10 border text-xs font-bold rounded-xl cursor-pointer ${
               isLight
                 ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-                : 'bg-[#0f1117] hover:bg-[#2a2d3e] border-[#2a2d3e] text-slate-300'
+                : 'bg-[#0f1117] hover:bg-[#232738] border-[#232738] text-slate-300'
             }`}
           >
             Cancel
@@ -254,7 +254,7 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
           <button
             onClick={handleRunDetection}
             disabled={running}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg shadow-md hover:shadow-indigo-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-5 h-10 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <Play className={`w-3.5 h-3.5 ${running ? 'animate-spin' : ''}`} />
             <span>{running ? 'Running ML Model...' : 'Execute ML Pattern Detector'}</span>
