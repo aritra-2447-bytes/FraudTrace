@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-page: #0f1117;
+    --bg-card: #1a1d2e;
+    --bg-subtle: #0f1117;
+    --bg-hover: #2a2d3e;
+    --border-main: #2a2d3e;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+  }
+
+  [data-theme="light"], .light-mode {
+    --bg-page: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-subtle: #f8fafc;
+    --bg-hover: #e2e8f0;
+    --border-main: #cbd5e1;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+  }
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+/* Theme utility classes */
+.theme-page-bg {
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+}
+
+.theme-card-bg {
+  background-color: var(--bg-card);
+  border-color: var(--border-main);
+  color: var(--text-primary);
+}
+
+.theme-subtle-bg {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-main);
+  color: var(--text-primary);
+}
+
+.theme-border {
+  border-color: var(--border-main);
+}
+
+.theme-text-primary {
+  color: var(--text-primary);
+}
+
+.theme-text-secondary {
+  color: var(--text-secondary);
+}

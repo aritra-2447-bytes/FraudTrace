@@ -1,0 +1,6 @@
+{
+  "name": "FraudTrace - Financial Crime Investigation Platform",
+  "description": "ML-powered financial crime investigation dashboard for detecting smurfing, layering, round-tripping, and mule chains with AI investigative briefs and telematics verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
