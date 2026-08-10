@@ -3,41 +3,81 @@
 @layer base {
   :root {
     --bg-page: #0f1117;
-    --bg-card: #1a1d2e;
+    --bg-card: #161926;
     --bg-subtle: #0f1117;
-    --bg-hover: #2a2d3e;
-    --border-main: #2a2d3e;
+    --bg-hover: #222638;
+    --border-main: #232738;
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
   }
 
   [data-theme="light"], .light-mode {
-    --bg-page: #f1f5f9;
+    --bg-page: #f8fafc;
     --bg-card: #ffffff;
-    --bg-subtle: #f8fafc;
+    --bg-subtle: #f1f5f9;
     --bg-hover: #e2e8f0;
-    --border-main: #cbd5e1;
+    --border-main: #e2e8f0;
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #64748b;
   }
+
+  * {
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif !important;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - ultra minimal */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.35);
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 3px;
+  height: 3px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.3);
-  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.5);
+  background: rgba(148, 163, 184, 0.3);
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.15) transparent;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Theme utility classes */

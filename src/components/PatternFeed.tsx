@@ -66,41 +66,41 @@ export const PatternFeed: React.FC<PatternFeedProps> = ({
 
   return (
     <div
-      className={`border rounded-xl p-5 flex flex-col h-full shadow-lg transition-colors ${
-        isLight ? 'bg-white border-slate-200' : 'bg-[#1a1d2e] border-[#2a2d3e]'
+      className={`border rounded-2xl p-4 sm:p-5 flex flex-col h-full transition-colors ${
+        isLight ? 'bg-white border-slate-200' : 'bg-[#161926] border-[#232738]'
       }`}
     >
       {/* Header & Filter Controls */}
       <div
         className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b ${
-          isLight ? 'border-slate-200' : 'border-[#2a2d3e]'
+          isLight ? 'border-slate-200' : 'border-[#232738]'
         }`}
       >
         <div>
-          <h2 className={`text-base font-bold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+          <h2 className={`text-base font-extrabold flex items-center gap-2 ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
             <span>Suspicious Pattern Feed</span>
-            <span className="px-2 py-0.5 text-xs font-mono rounded bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
               {filteredPatterns.length} detected
             </span>
           </h2>
-          <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             Ranked by ML anomaly risk score descending
           </p>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <Filter className="w-3.5 h-3.5 text-slate-400 mr-1 hidden sm:block" />
+        {/* Filter Pills - Mobile Touch Friendly Horizontal Scroll */}
+        <div className="flex items-center gap-1.5 text-xs overflow-x-auto pb-1 sm:pb-0 custom-scrollbar -mx-1 px-1">
+          <Filter className="w-3.5 h-3.5 text-slate-400 mr-1 shrink-0 hidden sm:block" />
           {['all', 'smurfing', 'layering', 'round-tripping', 'mule chain'].map((type) => (
             <button
               key={type}
               onClick={() => setSelectedType(type)}
-              className={`px-2.5 py-1 rounded-md capitalize font-medium transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl capitalize font-semibold transition-all cursor-pointer whitespace-nowrap min-h-[36px] ${
                 selectedType === type
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-indigo-600 text-white'
                   : isLight
                   ? 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
-                  : 'bg-[#0f1117] text-slate-400 hover:text-slate-200 border border-[#2a2d3e]'
+                  : 'bg-[#0f1117] text-slate-400 hover:text-slate-200 border border-[#232738]'
               }`}
             >
               {type}
@@ -121,15 +121,15 @@ export const PatternFeed: React.FC<PatternFeedProps> = ({
               key={pattern.pattern_id}
               className={`border hover:border-indigo-500/50 p-4 rounded-xl transition-all duration-200 group flex flex-col md:flex-row md:items-center justify-between gap-4 ${
                 isLight
-                  ? 'bg-slate-50 border-slate-200 hover:bg-slate-100/80 shadow-xs'
-                  : 'bg-[#0f1117] border-[#2a2d3e] hover:border-indigo-500/40'
+                  ? 'bg-slate-50/70 border-slate-200 hover:bg-slate-100/80'
+                  : 'bg-[#0f1117] border-[#232738] hover:border-indigo-500/40'
               }`}
             >
               {/* Info Column */}
               <div className="space-y-2 flex-1">
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`font-mono text-sm font-bold transition-colors group-hover:text-indigo-600 ${
+                    className={`text-sm font-extrabold transition-colors group-hover:text-indigo-600 ${
                       isLight ? 'text-slate-900' : 'text-slate-100'
                     }`}
                   >
@@ -138,10 +138,10 @@ export const PatternFeed: React.FC<PatternFeedProps> = ({
 
                   {/* Pattern Type Pill */}
                   <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize ${
                       isLight
-                        ? 'bg-white border-slate-200 text-slate-700 shadow-2xs'
-                        : 'bg-[#1a1d2e] border-[#2a2d3e] text-slate-200'
+                        ? 'bg-white border-slate-200 text-slate-700'
+                        : 'bg-[#161926] border-[#232738] text-slate-200'
                     }`}
                   >
                     {getPatternIcon(pattern.pattern_type)}
@@ -150,7 +150,7 @@ export const PatternFeed: React.FC<PatternFeedProps> = ({
 
                   {/* Case Status Pill */}
                   <span
-                    className={`px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wider ${
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                       pattern.status === 'open'
                         ? 'bg-red-500/10 text-red-500 border border-red-500/20'
                         : pattern.status === 'under_review'
@@ -162,53 +162,50 @@ export const PatternFeed: React.FC<PatternFeedProps> = ({
                   </span>
                 </div>
 
-                <p className={`text-xs line-clamp-1 ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                <p className={`text-xs line-clamp-2 ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
                   {pattern.description}
                 </p>
 
                 {/* Metrics Breakdown */}
                 <div
-                  className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs pt-1 font-mono ${
+                  className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs pt-1 ${
                     isLight ? 'text-slate-500' : 'text-slate-400'
                   }`}
                 >
                   <div>
-                    Accounts:{' '}
+                    Nodes:{' '}
                     <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
                       {pattern.accounts_involved}
                     </span>
                   </div>
                   <div>
-                    Total Moved:{' '}
-                    <span className="text-emerald-600 font-semibold">
+                    Total:{' '}
+                    <span className="text-emerald-600 font-bold">
                       {formatRupees(pattern.total_amount)}
                     </span>
                   </div>
                   <div>
-                    Time Span:{' '}
+                    Span:{' '}
                     <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
                       {pattern.time_span_hours}h
                     </span>
-                  </div>
-                  <div className={isLight ? 'text-slate-400 text-[11px]' : 'text-slate-500 text-[11px]'}>
-                    Last activity: {new Date(pattern.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
               </div>
 
               {/* Action & Risk Badge Column */}
               <div
-                className={`flex items-end justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 ${
-                  isLight ? 'border-slate-200' : 'border-[#2a2d3e]'
+                className={`flex items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 ${
+                  isLight ? 'border-slate-200' : 'border-[#232738]'
                 }`}
               >
                 {/* Risk Score Badge */}
-                <div className="flex flex-col items-end">
-                  <div className={`text-[10px] uppercase font-semibold tracking-wider mb-1 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
+                <div className="flex flex-col items-start md:items-end">
+                  <div className={`text-[10px] uppercase font-bold tracking-wider mb-0.5 ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>
                     Risk Score
                   </div>
                   <div
-                    className={`inline-flex items-center justify-center px-3 h-9 rounded-lg border text-xs font-bold font-mono ${getRiskBadgeColor(
+                    className={`inline-flex items-center justify-center px-3 h-9 rounded-lg border text-xs font-bold ${getRiskBadgeColor(
                       pattern.risk_score
                     )}`}
                   >
@@ -219,7 +216,7 @@ export const PatternFeed: React.FC<PatternFeedProps> = ({
                 {/* Open Case Button */}
                 <button
                   onClick={() => onOpenCase(pattern.pattern_id)}
-                  className="flex items-center gap-1.5 px-3.5 h-9 bg-indigo-600/90 hover:bg-indigo-600 text-white font-medium text-xs rounded-lg transition-all shadow cursor-pointer whitespace-nowrap"
+                  className="flex items-center justify-center gap-1.5 px-4 h-10 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap min-w-[100px]"
                 >
                   <span>Open Case</span>
                   <ExternalLink className="w-3.5 h-3.5" />
