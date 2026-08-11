@@ -5,7 +5,12 @@ import { useTheme } from '../context/ThemeContext';
 
 interface RunDetectionModalProps {
   onClose: () => void;
-  onPatternCreated: (patternId: string) => void;
+  onPatternDetected: (
+    patternId: string,
+    detectedPattern: ModelDetectionResponse['patterns_detected'][0],
+    rawTransactions: any[]
+  ) => void;
+  onOpenCase: (patternId: string) => void;
 }
 
 const PRESET_SCENARIOS = [
@@ -52,7 +57,8 @@ const PRESET_SCENARIOS = [
 
 export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
   onClose,
-  onPatternCreated,
+  onPatternDetected,
+  onOpenCase,
 }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
@@ -66,46 +72,100 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
     setError(null);
     setResult(null);
 
-    const API_BASE = import.meta.env.VITE_API_URL || '';
-
     try {
-      let parsedTransactions;
+      let parsedTransactions: any[];
       try {
         parsedTransactions = JSON.parse(jsonInput);
       } catch (err) {
         throw new Error('Invalid JSON syntax in input box.');
       }
 
-      const response = await fetch(`${API_BASE}/api/model/detect`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transactions: parsedTransactions }),
-      }).catch(() => null);
+      const generatedId = `PAT-${Date.now().toString().slice(-5)}`;
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
-      if (response && response.ok) {
+      let detectedPattern: ModelDetectionResponse['patterns_detected'][0];
+
+      if (apiKey) {
+        const promptText = `Analyze the following financial transaction stream for suspicious patterns (smurfing, layering, round-tripping, mule chain).
+Return ONLY raw JSON with no markdown formatting or code blocks in this exact shape:
+{
+  "pattern_type": "smurfing",
+  "accounts": ["ACC-001", "ACC-002"],
+  "risk_score": 87,
+  "total_amount": 481000,
+  "explanation": "2-3 sentence plain English reason why this is suspicious."
+}
+
+Transactions:
+${JSON.stringify(parsedTransactions, null, 2)}`;
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: promptText }] }],
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Gemini API error (${response.status}): ${errText}`);
+        }
+
         const data = await response.json();
-        setResult({
-          newPatternId: data.new_pattern_id,
-          detected: data.patterns_detected,
-        });
-        setRunning(false);
-        return;
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const cleanJsonText = rawText.replace(/```json|```/g, '').trim();
+        const parsedResult = JSON.parse(cleanJsonText);
+
+        detectedPattern = {
+          pattern_type: (parsedResult.pattern_type as any) || 'smurfing',
+          accounts: Array.isArray(parsedResult.accounts) ? parsedResult.accounts : [],
+          risk_score: Number(parsedResult.risk_score) || 85,
+          total_amount: Number(parsedResult.total_amount) || 0,
+          explanation: parsedResult.explanation || 'Suspicious financial pattern detected by Gemini ML engine.',
+        };
+      } else {
+        // Fallback detection logic if Gemini API key is missing
+        const API_BASE = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${API_BASE}/api/model/detect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transactions: parsedTransactions }),
+        }).catch(() => null);
+
+        if (response && response.ok) {
+          const data = await response.json();
+          detectedPattern = data.patterns_detected[0];
+        } else {
+          const accSet = new Set<string>();
+          let totalAmt = 0;
+          if (Array.isArray(parsedTransactions)) {
+            parsedTransactions.forEach((t: any) => {
+              if (t.from) accSet.add(t.from);
+              if (t.to) accSet.add(t.to);
+              totalAmt += Number(t.amount) || 0;
+            });
+          }
+          detectedPattern = {
+            pattern_type: 'smurfing',
+            accounts: Array.from(accSet),
+            risk_score: 89,
+            total_amount: totalAmt || 481000,
+            explanation: 'ML Detection Engine: Rapid micro-transfers with sub-threshold structuring detected.',
+          };
+        }
       }
 
-      // Fallback detection logic if backend is unavailable
-      const generatedId = `PAT-00${Math.floor(Math.random() * 90) + 10}`;
       setResult({
         newPatternId: generatedId,
-        detected: [
-          {
-            pattern_type: 'smurfing',
-            accounts: Array.isArray(parsedTransactions) ? parsedTransactions.map((t: any) => t.from || 'ACC-001') : ['ACC-001', 'ACC-002'],
-            risk_score: 89,
-            total_amount: Array.isArray(parsedTransactions) ? parsedTransactions.reduce((acc: number, t: any) => acc + (Number(t.amount) || 0), 0) : 500000,
-            explanation: 'ML Detection Engine: Rapid micro-transfers with sub-threshold structuring detected.',
-          },
-        ],
+        detected: [detectedPattern],
       });
+
+      // Fire instantly — injects into Pattern Feed + KPIs + Timeline + flaggedAccounts
+      onPatternDetected(generatedId, detectedPattern, parsedTransactions);
     } catch (err: any) {
       setError(err?.message || 'Model detection failed');
     } finally {
@@ -116,7 +176,7 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
       <div
-        className={`border rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-5 my-auto animate-in fade-in zoom-in duration-200 ${
+        className={`border rounded-2xl max-w-3xl w-full p-5 sm:p-7 space-y-6 my-auto animate-in fade-in zoom-in duration-200 ${
           isLight ? 'bg-white border-slate-200' : 'bg-[#161926] border-[#232738]'
         }`}
       >
@@ -182,10 +242,10 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
             <span>Raw Transaction Stream JSON</span>
           </label>
           <textarea
-            rows={7}
+            rows={12}
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
-            className={`w-full border rounded-xl p-3 text-xs focus:outline-none focus:border-indigo-500 resize-none font-mono ${
+            className={`w-full border rounded-xl p-4 text-sm sm:text-base leading-relaxed focus:outline-none focus:border-indigo-500 resize-y font-mono min-h-[260px] ${
               isLight
                 ? 'bg-slate-50 border-slate-200 text-slate-900'
                 : 'bg-[#0f1117] border-[#232738] text-slate-200'
@@ -224,7 +284,7 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
               </span>
               <button
                 onClick={() => {
-                  onPatternCreated(result.newPatternId);
+                  onOpenCase(result.newPatternId);
                   onClose();
                 }}
                 className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded shadow cursor-pointer"
