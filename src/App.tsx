@@ -10,6 +10,7 @@ import { AiBriefPanel } from './components/AiBriefPanel';
 import { CaseActionsPanel } from './components/CaseActionsPanel';
 import { EntityVerificationModal } from './components/EntityVerificationModal';
 import { RunDetectionModal } from './components/RunDetectionModal';
+import { WelcomeModal } from './components/WelcomeModal';
 import { ShapeGrid } from './components/ShapeGrid';
 import { useTheme } from './context/ThemeContext';
 import {
@@ -53,6 +54,7 @@ export default function App() {
   const [caseError, setCaseError] = useState<string | null>(null);
 
   // Modals state
+  const [showWelcome, setShowWelcome] = useState<boolean>(true);
   const [showEntityModal, setShowEntityModal] = useState<boolean>(false);
   const [showDetectionModal, setShowDetectionModal] = useState<boolean>(false);
 
@@ -564,6 +566,15 @@ export default function App() {
                   onPatternDetected={handlePatternDetected}
                   onOpenCase={(newPatternId) => {
                     navigateTo(`/case/${newPatternId}`);
+                  }}
+              />
+          )}
+
+          {/* Welcome Modal on Load */}
+          {showWelcome && (
+              <WelcomeModal
+                  onClose={() => {
+                    setShowWelcome(false);
                   }}
               />
           )}
