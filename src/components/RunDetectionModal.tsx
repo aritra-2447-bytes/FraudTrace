@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ModelDetectionResponse } from '../types';
 import { Play, Sparkles, X, CheckCircle2, AlertTriangle, FileCode } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import emailjs from '@emailjs/browser';
 
 interface RunDetectionModalProps {
   onClose: () => void;
@@ -167,7 +168,34 @@ ${JSON.stringify(parsedTransactions, null, 2)}`;
       // Fire instantly — injects into Pattern Feed + KPIs + Timeline + flaggedAccounts
       onPatternDetected(generatedId, detectedPattern, parsedTransactions);
     } catch (err: any) {
-      setError(err?.message || 'Model detection failed');
+        const errMessage = err?.message || 'Model detection failed';
+        setError(errMessage);
+
+        // Detect rate limit — Gemini returns 429
+        const isRateLimit =
+            errMessage.includes('429') ||
+            errMessage.toLowerCase().includes('quota') ||
+            errMessage.toLowerCase().includes('rate');
+
+        if (isRateLimit) {
+            try {
+                await emailjs.send(
+                    import.meta.env.VITE_EMAILJS_SERVICE_ID,
+                    import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+                    {
+                        to_email: 'your@email.com',
+                        subject: 'FinTrace — Gemini API Rate Limit Reached',
+                        timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                        api_used: 'Google Gemini (gemini-2.0-flash)',
+                        triggered_by: 'RunDetectionModal → handleRunDetection',
+                        error_detail: errMessage,
+                    },
+                    import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+                );
+            } catch (mailErr) {
+                console.warn('Email notification failed:', mailErr);
+            }
+        }
     } finally {
       setRunning(false);
     }
@@ -254,12 +282,22 @@ ${JSON.stringify(parsedTransactions, null, 2)}`;
         </div>
 
         {/* Error State */}
-        {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-500 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+          {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-500 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                      <span className="font-bold block">
+                        {error.includes('429') ? 'API Rate Limit Reached' : 'Detection Failed'}
+                      </span>
+                      <span className="text-red-400">{error}</span>
+                      {error.includes('429') && (
+                          <span className="text-amber-400 block">
+                            An alert email has been sent to the admin automatically.
+                          </span>
+                      )}
+                  </div>
+              </div>
+          )}
 
         {/* Detection Result Card */}
         {result && (
