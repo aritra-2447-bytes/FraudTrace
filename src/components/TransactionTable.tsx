@@ -15,7 +15,8 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const pageSize = 5;
 
-  const filtered = transactions.filter(
+  const list = transactions || [];
+  const filtered = list.filter(
     (t) =>
       t.txn_id.toLowerCase().includes(search.toLowerCase()) ||
       t.from_account.toLowerCase().includes(search.toLowerCase()) ||
@@ -54,7 +55,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
       >
         <div>
           <h3 className={`text-sm font-extrabold ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
-            Pattern Transaction Ledger ({transactions.length} Txns)
+            Pattern Transaction Ledger ({list.length} Txns)
           </h3>
           <p className={`text-xs mt-0.5 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
             Individual fund transfers flagged in this suspicious cluster

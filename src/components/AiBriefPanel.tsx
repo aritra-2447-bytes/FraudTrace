@@ -22,7 +22,7 @@ function generateClientFallbackBrief(pattern: PatternDetail, entity: EntityInves
       ? 'Critical Mismatch: Declared transaction volume significantly diverges from reported TDS tax filings.'
       : 'Normal tax deduction alignment.';
 
-  const nodeIds = pattern.graph.nodes.map((n) => n.id).slice(0, 3).join('`, `');
+  const nodeIds = pattern?.graph?.nodes ? pattern.graph.nodes.map((n) => n.id).slice(0, 3).join('`, `') : 'N/A';
 
   return `### 1. Pattern Summary
 The system flagged a high-risk **${pattern.pattern_type.toUpperCase()}** cluster involving **${pattern.accounts_involved} accounts** with a total transactional velocity of **₹${pattern.total_amount.toLocaleString('en-IN')}** across **${pattern.time_span_hours} hours**. Anomaly Risk Score is calculated at **${pattern.risk_score}/100**.

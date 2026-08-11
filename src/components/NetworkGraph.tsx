@@ -59,14 +59,16 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({ graph }) => {
 
   // Memoize graphData so reference stays stable across hover/click state changes
   const graphData = useMemo(() => {
+    const nodes = graph?.nodes || [];
+    const edges = graph?.edges || [];
     return {
-      nodes: graph.nodes.map((n) => ({
+      nodes: nodes.map((n) => ({
         ...n,
-        val: Math.max(3, Math.min(8, (n.total_sent + n.total_received) / 100000)),
+        val: Math.max(3, Math.min(8, ((n.total_sent || 0) + (n.total_received || 0)) / 100000)),
       })),
-      links: graph.edges.map((e) => ({
+      links: edges.map((e) => ({
         ...e,
-        value: Math.max(1, Math.min(5, e.amount / 100000)),
+        value: Math.max(1, Math.min(5, (e.amount || 0) / 100000)),
       })),
     };
   }, [graph]);
