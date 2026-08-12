@@ -1,7 +1,6 @@
+import 'dotenv/config';
 import express from "express";
-import path from "path";
-import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
+import cors from 'cors';
 import {
   DashboardSummary,
   SuspiciousPattern,
@@ -14,22 +13,41 @@ import {
 
 // Initialize Express
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// Initialize Gemini Client
-const getGeminiClient = () => {
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PATCH',],
+}));
+
+// Helper function to call Gemini REST API via native fetch
+const callGeminiRestAPI = async (promptText: string) => {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
+  if (!apiKey) {
+    console.error("[Gemini] GEMINI_API_KEY is not set — falling back to heuristic engine.");
+    return null;
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: promptText }] }],
+    }),
   });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Gemini API HTTP ${response.status}: ${errorBody}`);
+  }
+
+  const data = await response.json();
+  // Extract generated text from Gemini REST response structure
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
 };
 
 // ==========================================
@@ -39,6 +57,20 @@ const getGeminiClient = () => {
 let INITIAL_PATTERNS_STORE: SuspiciousPattern[] = [];
 let PATTERN_DETAILS_STORE: Record<string, PatternDetail> = {};
 let ENTITY_INVESTIGATIONS_STORE: Record<string, EntityInvestigation> = {};
+
+// Base Health Check Route
+app.get("/", (req, res) => {
+  res.json({
+    status: "online",
+    message: "FraudTrace Backend API is running.",
+    endpoints: [
+      "/api/dashboard/summary",
+      "/api/patterns",
+      "/api/dashboard/timeline",
+      "/api/accounts/flagged"
+    ]
+  });
+});
 
 // ==========================================
 // API ENDPOINTS
@@ -230,11 +262,8 @@ app.post("/api/ai/investigative-brief", async (req, res) => {
     return res.status(400).json({ error: "Missing pattern object" });
   }
 
-  const ai = getGeminiClient();
-
-  if (ai) {
-    try {
-      const prompt = `You are a Senior Financial Intelligence Unit (FIU) Analyst specializing in Anti-Money Laundering (AML) and Countering the Financing of Terrorism (CFT).
+  try {
+    const prompt = `You are a Senior Financial Intelligence Unit (FIU) Analyst specializing in Anti-Money Laundering (AML) and Countering the Financing of Terrorism (CFT).
 Generate a formal, highly detailed plain-language AI Investigative Brief in Markdown for the following financial crime anomaly case:
 
 CASE METRICS:
@@ -268,18 +297,13 @@ Provide a structured Markdown report with the following numbered sections:
 
 Keep formatting clean, executive-ready, bold key terms, and avoid generic boilerplate.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
-
-      const text = response.text;
-      if (text) {
-        return res.json({ brief: text, generated_at: new Date().toISOString() });
-      }
-    } catch (err) {
-      console.error("Gemini API call error in investigative brief:", err);
+    const text = await callGeminiRestAPI(prompt);
+    if (text) {
+      return res.json({ brief: text, generated_at: new Date().toISOString() });
     }
+  } catch (err: any) {
+    console.error("[Gemini REST] Investigative brief FAILED — falling back to template.");
+    console.error("[Gemini REST] Error message:", err?.message);
   }
 
   // Smart fallback if Gemini key is missing or call fails
@@ -323,11 +347,10 @@ app.post("/api/model/detect", async (req, res) => {
   }
 
   const generatedId = `PAT-${Math.floor(100 + Math.random() * 900)}`;
-  const ai = getGeminiClient();
 
-  if (ai) {
-    try {
-      const prompt = `You are an AI ML Pattern Detector for financial crime and Anti-Money Laundering (AML) monitoring.
+  try {
+    console.log("[Gemini REST] Calling ML Pattern Detector for", generatedId);
+    const prompt = `You are an AI ML Pattern Detector for financial crime and Anti-Money Laundering (AML) monitoring.
 Analyze the following raw transaction stream input provided by the user:
 
 RAW TRANSACTIONS INPUT:
@@ -346,7 +369,7 @@ Return ONLY a valid JSON object matching EXACTLY this JSON structure without any
   "time_span_hours": 24,
   "risk_score": 89,
   "description": "ML Model detected structured fan-in deposits across 5 accounts targeting central hub ACC-HUB-99.",
-  "explanation": "ML Pattern Engine: High velocity structured deposits below reporting thresholds detected with IP proxy anomalies.",
+  "explanation": "2-3 sentence plain English reason why this is suspicious.",
   "graph": {
     "nodes": [
       { "id": "ACC-MULE-1", "risk_score": 85, "total_sent": 98000, "total_received": 0, "role": "Feeder Node", "account_name": "Account 1", "bank_name": "State Bank" },
@@ -361,66 +384,66 @@ Return ONLY a valid JSON object matching EXACTLY this JSON structure without any
   ]
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
-
-      const responseText = response.text?.trim() || "";
+    const responseText = await callGeminiRestAPI(prompt);
+    if (responseText) {
+      console.log("[Gemini REST] Raw response text:", responseText.slice(0, 300));
       let jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedResult = JSON.parse(jsonMatch[0]);
-
-        const patternType = (parsedResult.pattern_type || "smurfing").toLowerCase() as any;
-        const newPattern: SuspiciousPattern = {
-          pattern_id: parsedResult.new_pattern_id || generatedId,
-          pattern_type: patternType,
-          accounts_involved: Number(parsedResult.accounts_involved) || 5,
-          total_amount: Number(parsedResult.total_amount) || 500000,
-          time_span_hours: Number(parsedResult.time_span_hours) || 24,
-          risk_score: Number(parsedResult.risk_score) || 88,
-          first_seen: new Date(Date.now() - 3600000 * 12).toISOString(),
-          last_seen: new Date().toISOString(),
-          status: "open",
-          description: parsedResult.description || "ML Model flagged suspicious financial structuring pattern.",
-        };
-
-        const newDetail: PatternDetail = {
-          ...newPattern,
-          graph: parsedResult.graph || {
-            nodes: [
-              { id: "ACC-MULE-1", risk_score: 85, total_sent: newPattern.total_amount, total_received: 0, role: "Feeder Account", account_name: "Source Mule" },
-              { id: "ACC-HUB-99", risk_score: 94, total_sent: 0, total_received: newPattern.total_amount, role: "Accumulator Hub", account_name: "Central Consolidation Hub" },
-            ],
-            edges: [
-              { id: "E1", source: "ACC-MULE-1", target: "ACC-HUB-99", amount: newPattern.total_amount, timestamp: new Date().toISOString() },
-            ],
-          },
-          transactions: parsedResult.transactions || [
-            { txn_id: "TXN-001", from_account: "ACC-MULE-1", to_account: "ACC-HUB-99", amount: newPattern.total_amount, timestamp: new Date().toISOString(), flag_reason: "High velocity ML anomaly alert" },
-          ],
-        };
-
-        // Save to dynamic in-memory store
-        INITIAL_PATTERNS_STORE.unshift(newPattern);
-        PATTERN_DETAILS_STORE[newPattern.pattern_id] = newDetail;
-
-        return res.json({
-          new_pattern_id: newPattern.pattern_id,
-          patterns_detected: [
-            {
-              pattern_type: newPattern.pattern_type,
-              accounts: newDetail.graph.nodes.map((n) => n.id),
-              risk_score: newPattern.risk_score,
-              total_amount: newPattern.total_amount,
-              explanation: parsedResult.explanation || `ML Pattern Detector executed: ${newPattern.description}`,
-            },
-          ],
-        });
+      if (!jsonMatch) {
+        throw new Error("[Gemini REST] No JSON object found in model response");
       }
-    } catch (err) {
-      console.error("Gemini API error during ML pattern detection:", err);
+
+      const parsedResult = JSON.parse(jsonMatch[0]);
+      const patternType = (parsedResult.pattern_type || "smurfing").toLowerCase() as any;
+
+      const newPattern: SuspiciousPattern = {
+        pattern_id: parsedResult.new_pattern_id || generatedId,
+        pattern_type: patternType,
+        accounts_involved: Number(parsedResult.accounts_involved) || 5,
+        total_amount: Number(parsedResult.total_amount) || 500000,
+        time_span_hours: Number(parsedResult.time_span_hours) || 24,
+        risk_score: Number(parsedResult.risk_score) || 88,
+        first_seen: new Date(Date.now() - 3600000 * 12).toISOString(),
+        last_seen: new Date().toISOString(),
+        status: "open",
+        description: parsedResult.description || "ML Model flagged suspicious financial structuring pattern.",
+      };
+
+      const newDetail: PatternDetail = {
+        ...newPattern,
+        graph: parsedResult.graph || {
+          nodes: [
+            { id: "ACC-MULE-1", risk_score: 85, total_sent: newPattern.total_amount, total_received: 0, role: "Feeder Account", account_name: "Source Mule" },
+            { id: "ACC-HUB-99", risk_score: 94, total_sent: 0, total_received: newPattern.total_amount, role: "Accumulator Hub", account_name: "Central Consolidation Hub" },
+          ],
+          edges: [
+            { id: "E1", source: "ACC-MULE-1", target: "ACC-HUB-99", amount: newPattern.total_amount, timestamp: new Date().toISOString() },
+          ],
+        },
+        transactions: parsedResult.transactions || [
+          { txn_id: "TXN-001", from_account: "ACC-MULE-1", to_account: "ACC-HUB-99", amount: newPattern.total_amount, timestamp: new Date().toISOString(), flag_reason: "High velocity ML anomaly alert" },
+        ],
+      };
+
+      // Save to dynamic in-memory store
+      INITIAL_PATTERNS_STORE.unshift(newPattern);
+      PATTERN_DETAILS_STORE[newPattern.pattern_id] = newDetail;
+
+      return res.json({
+        new_pattern_id: newPattern.pattern_id,
+        patterns_detected: [
+          {
+            pattern_type: newPattern.pattern_type,
+            accounts: newDetail.graph.nodes.map((n) => n.id),
+            risk_score: newPattern.risk_score,
+            total_amount: newPattern.total_amount,
+            explanation: parsedResult.explanation || `ML Pattern Detector executed: ${newPattern.description}`,
+          },
+        ],
+      });
     }
+  } catch (err: any) {
+    console.error("[Gemini REST] ML pattern detection FAILED — falling back to heuristic engine.");
+    console.error("[Gemini REST] Error message:", err?.message);
   }
 
   // Heuristic ML Detection Engine fallback if Gemini API is offline or unconfigured
@@ -466,42 +489,42 @@ Return ONLY a valid JSON object matching EXACTLY this JSON structure without any
     graph: {
       nodes: accountsList.length > 0
         ? accountsList.map((acc, idx) => ({
-            id: acc,
-            risk_score: 80 + idx * 3,
-            total_sent: idx === 0 ? computedAmount : 0,
-            total_received: idx === accountsList.length - 1 ? computedAmount : 0,
-            role: idx === 0 ? "Source Node" : idx === accountsList.length - 1 ? "Accumulator Hub" : "Transit Mule",
-            account_name: `Entity ${acc}`,
-            bank_name: "Domestic Bank",
-          }))
+          id: acc,
+          risk_score: 80 + idx * 3,
+          total_sent: idx === 0 ? computedAmount : 0,
+          total_received: idx === accountsList.length - 1 ? computedAmount : 0,
+          role: idx === 0 ? "Source Node" : idx === accountsList.length - 1 ? "Accumulator Hub" : "Transit Mule",
+          account_name: `Entity ${acc}`,
+          bank_name: "Domestic Bank",
+        }))
         : [
-            { id: "ACC-MULE-1", risk_score: 88, total_sent: computedAmount, total_received: 0, role: "Origin Node", account_name: "Source Mule" },
-            { id: "ACC-HUB-99", risk_score: 95, total_sent: 0, total_received: computedAmount, role: "Central Hub", account_name: "Consolidation Hub" },
-          ],
+          { id: "ACC-MULE-1", risk_score: 88, total_sent: computedAmount, total_received: 0, role: "Origin Node", account_name: "Source Mule" },
+          { id: "ACC-HUB-99", risk_score: 95, total_sent: 0, total_received: computedAmount, role: "Central Hub", account_name: "Consolidation Hub" },
+        ],
       edges: isArray && parsedInput.length > 0
         ? parsedInput.map((t: any, idx: number) => ({
-            id: `E-${idx}`,
-            source: t.from || t.from_account || "ACC-MULE-1",
-            target: t.to || t.to_account || "ACC-HUB-99",
-            amount: Number(t.amount) || 100000,
-            timestamp: t.timestamp || new Date().toISOString(),
-          }))
+          id: `E-${idx}`,
+          source: t.from || t.from_account || "ACC-MULE-1",
+          target: t.to || t.to_account || "ACC-HUB-99",
+          amount: Number(t.amount) || 100000,
+          timestamp: t.timestamp || new Date().toISOString(),
+        }))
         : [
-            { id: "E1", source: "ACC-MULE-1", target: "ACC-HUB-99", amount: computedAmount, timestamp: new Date().toISOString() },
-          ],
+          { id: "E1", source: "ACC-MULE-1", target: "ACC-HUB-99", amount: computedAmount, timestamp: new Date().toISOString() },
+        ],
     },
     transactions: isArray && parsedInput.length > 0
       ? parsedInput.map((t: any, idx: number) => ({
-          txn_id: `TXN-DET-${100 + idx}`,
-          from_account: t.from || t.from_account || "ACC-MULE-1",
-          to_account: t.to || t.to_account || "ACC-HUB-99",
-          amount: Number(t.amount) || 100000,
-          timestamp: t.timestamp || new Date().toISOString(),
-          flag_reason: `ML Pattern Engine: High velocity ${detectedType} vector alert`,
-        }))
+        txn_id: `TXN-DET-${100 + idx}`,
+        from_account: t.from || t.from_account || "ACC-MULE-1",
+        to_account: t.to || t.to_account || "ACC-HUB-99",
+        amount: Number(t.amount) || 100000,
+        timestamp: t.timestamp || new Date().toISOString(),
+        flag_reason: `ML Pattern Engine: High velocity ${detectedType} vector alert`,
+      }))
       : [
-          { txn_id: "TXN-DET-100", from_account: "ACC-MULE-1", to_account: "ACC-HUB-99", amount: computedAmount, timestamp: new Date().toISOString(), flag_reason: "High velocity ML anomaly alert" },
-        ],
+        { txn_id: "TXN-DET-100", from_account: "ACC-MULE-1", to_account: "ACC-HUB-99", amount: computedAmount, timestamp: new Date().toISOString(), flag_reason: "High velocity ML anomaly alert" },
+      ],
   };
 
   // Add to dynamic store
@@ -523,27 +546,9 @@ Return ONLY a valid JSON object matching EXACTLY this JSON structure without any
 });
 
 // ==========================================
-// VITE MIDDLEWARE & SERVING
+//           SERVING
 // ==========================================
 
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-  });
-}
-
-startServer();
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Backend API running on http://0.0.0.0:${PORT}`);
+});

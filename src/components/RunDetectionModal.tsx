@@ -81,121 +81,62 @@ export const RunDetectionModal: React.FC<RunDetectionModalProps> = ({
         throw new Error('Invalid JSON syntax in input box.');
       }
 
-      const generatedId = `PAT-${Date.now().toString().slice(-5)}`;
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+      const API_BASE = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${API_BASE}/api/model/detect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactions: parsedTransactions }),
+      });
 
-      let detectedPattern: ModelDetectionResponse['patterns_detected'][0];
-
-      if (apiKey) {
-        const promptText = `Analyze the following financial transaction stream for suspicious patterns (smurfing, layering, round-tripping, mule chain).
-Return ONLY raw JSON with no markdown formatting or code blocks in this exact shape:
-{
-  "pattern_type": "smurfing",
-  "accounts": ["ACC-001", "ACC-002"],
-  "risk_score": 87,
-  "total_amount": 481000,
-  "explanation": "2-3 sentence plain English reason why this is suspicious."
-}
-
-Transactions:
-${JSON.stringify(parsedTransactions, null, 2)}`;
-
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: promptText }] }],
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`Gemini API error (${response.status}): ${errText}`);
-        }
-
-        const data = await response.json();
-        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const cleanJsonText = rawText.replace(/```json|```/g, '').trim();
-        const parsedResult = JSON.parse(cleanJsonText);
-
-        detectedPattern = {
-          pattern_type: (parsedResult.pattern_type as any) || 'smurfing',
-          accounts: Array.isArray(parsedResult.accounts) ? parsedResult.accounts : [],
-          risk_score: Number(parsedResult.risk_score) || 85,
-          total_amount: Number(parsedResult.total_amount) || 0,
-          explanation: parsedResult.explanation || 'Suspicious financial pattern detected by Gemini ML engine.',
-        };
-      } else {
-        // Fallback detection logic if Gemini API key is missing
-        const API_BASE = import.meta.env.VITE_API_URL || '';
-        const response = await fetch(`${API_BASE}/api/model/detect`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transactions: parsedTransactions }),
-        }).catch(() => null);
-
-        if (response && response.ok) {
-          const data = await response.json();
-          detectedPattern = data.patterns_detected[0];
-        } else {
-          const accSet = new Set<string>();
-          let totalAmt = 0;
-          if (Array.isArray(parsedTransactions)) {
-            parsedTransactions.forEach((t: any) => {
-              if (t.from) accSet.add(t.from);
-              if (t.to) accSet.add(t.to);
-              totalAmt += Number(t.amount) || 0;
-            });
-          }
-          detectedPattern = {
-            pattern_type: 'smurfing',
-            accounts: Array.from(accSet),
-            risk_score: 89,
-            total_amount: totalAmt || 481000,
-            explanation: 'ML Detection Engine: Rapid micro-transfers with sub-threshold structuring detected.',
-          };
-        }
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Detection API error (${response.status}): ${errText}`);
       }
+
+      const data = await response.json();
+      if (!data.patterns_detected || !data.patterns_detected.length) {
+        throw new Error('No patterns detected from model response.');
+      }
+
+      const generatedId = data.new_pattern_id || `PAT-${Date.now().toString().slice(-5)}`;
+      const detectedPattern = data.patterns_detected[0];
 
       setResult({
         newPatternId: generatedId,
-        detected: [detectedPattern],
+        detected: data.patterns_detected,
       });
 
       // Fire instantly — injects into Pattern Feed + KPIs + Timeline + flaggedAccounts
       onPatternDetected(generatedId, detectedPattern, parsedTransactions);
     } catch (err: any) {
-        const errMessage = err?.message || 'Model detection failed';
-        setError(errMessage);
+      const errMessage = err?.message || 'Model detection failed';
+      setError(errMessage);
 
-        // Detect rate limit — Gemini returns 429
-        const isRateLimit =
-            errMessage.includes('429') ||
-            errMessage.toLowerCase().includes('quota') ||
-            errMessage.toLowerCase().includes('rate');
+      // Detect rate limit — Gemini returns 429
+      const isRateLimit =
+        errMessage.includes('429') ||
+        errMessage.toLowerCase().includes('quota') ||
+        errMessage.toLowerCase().includes('rate');
 
-        if (isRateLimit) {
-            try {
-                await emailjs.send(
-                    import.meta.env.VITE_EMAILJS_SERVICE_ID,
-                    import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-                    {
-                        to_email: 'your@email.com',
-                        subject: 'FinTrace — Gemini API Rate Limit Reached',
-                        timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-                        api_used: 'Google Gemini (gemini-2.0-flash)',
-                        triggered_by: 'RunDetectionModal → handleRunDetection',
-                        error_detail: errMessage,
-                    },
-                    import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-                );
-            } catch (mailErr) {
-                console.warn('Email notification failed:', mailErr);
-            }
+      if (isRateLimit) {
+        try {
+          await emailjs.send(
+            import.meta.env.VITE_EMAILJS_SERVICE_ID,
+            import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+            {
+              to_email: 'your@email.com',
+              subject: 'FinTrace — Gemini API Rate Limit Reached',
+              timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+              api_used: 'Google Gemini (server.ts)',
+              triggered_by: 'RunDetectionModal → handleRunDetection',
+              error_detail: errMessage,
+            },
+            import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+          );
+        } catch (mailErr) {
+          console.warn('Email notification failed:', mailErr);
         }
+      }
     } finally {
       setRunning(false);
     }
@@ -204,15 +145,13 @@ ${JSON.stringify(parsedTransactions, null, 2)}`;
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
       <div
-        className={`border rounded-2xl max-w-3xl w-full p-5 sm:p-7 space-y-6 my-auto animate-in fade-in zoom-in duration-200 ${
-          isLight ? 'bg-white border-slate-200' : 'bg-[#161926] border-[#232738]'
-        }`}
+        className={`border rounded-2xl max-w-3xl w-full p-5 sm:p-7 space-y-6 my-auto animate-in fade-in zoom-in duration-200 ${isLight ? 'bg-white border-slate-200' : 'bg-[#161926] border-[#232738]'
+          }`}
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between pb-3 border-b ${
-            isLight ? 'border-slate-200' : 'border-[#232738]'
-          }`}
+          className={`flex items-center justify-between pb-3 border-b ${isLight ? 'border-slate-200' : 'border-[#232738]'
+            }`}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-500 shrink-0">
@@ -229,9 +168,8 @@ ${JSON.stringify(parsedTransactions, null, 2)}`;
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-xl transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center ${
-              isLight ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-[#232738]'
-            }`}
+            className={`p-2 rounded-xl transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center ${isLight ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100' : 'text-slate-400 hover:text-slate-200 hover:bg-[#232738]'
+              }`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -251,11 +189,10 @@ ${JSON.stringify(parsedTransactions, null, 2)}`;
                   setResult(null);
                   setError(null);
                 }}
-                className={`px-3 py-1.5 border rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${
-                  isLight
+                className={`px-3 py-1.5 border rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap min-h-[36px] ${isLight
                     ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
                     : 'bg-[#0f1117] hover:bg-[#232738] border-[#232738] text-slate-300'
-                }`}
+                  }`}
               >
                 {scenario.name}
               </button>
@@ -273,31 +210,30 @@ ${JSON.stringify(parsedTransactions, null, 2)}`;
             rows={12}
             value={jsonInput}
             onChange={(e) => setJsonInput(e.target.value)}
-            className={`w-full border rounded-xl p-4 text-sm sm:text-base leading-relaxed focus:outline-none focus:border-indigo-500 resize-y font-mono min-h-[260px] ${
-              isLight
+            className={`w-full border rounded-xl p-4 text-sm sm:text-base leading-relaxed focus:outline-none focus:border-indigo-500 resize-y font-mono min-h-[260px] ${isLight
                 ? 'bg-slate-50 border-slate-200 text-slate-900'
                 : 'bg-[#0f1117] border-[#232738] text-slate-200'
-            }`}
+              }`}
           />
         </div>
 
         {/* Error State */}
-          {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-500 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                      <span className="font-bold block">
-                        {error.includes('429') ? 'API Rate Limit Reached' : 'Detection Failed'}
-                      </span>
-                      <span className="text-red-400">{error}</span>
-                      {error.includes('429') && (
-                          <span className="text-amber-400 block">
-                            An alert email has been sent to the admin automatically.
-                          </span>
-                      )}
-                  </div>
-              </div>
-          )}
+        {error && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-500 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-bold block">
+                {error.includes('429') ? 'API Rate Limit Reached' : 'Detection Failed'}
+              </span>
+              <span className="text-red-400">{error}</span>
+              {error.includes('429') && (
+                <span className="text-amber-400 block">
+                  An alert email has been sent to the admin automatically.
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Detection Result Card */}
         {result && (
@@ -335,17 +271,15 @@ ${JSON.stringify(parsedTransactions, null, 2)}`;
 
         {/* Action Button Footer */}
         <div
-          className={`pt-3 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t ${
-            isLight ? 'border-slate-200' : 'border-[#232738]'
-          }`}
+          className={`pt-3 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t ${isLight ? 'border-slate-200' : 'border-[#232738]'
+            }`}
         >
           <button
             onClick={onClose}
-            className={`px-4 h-10 border text-xs font-bold rounded-xl cursor-pointer ${
-              isLight
+            className={`px-4 h-10 border text-xs font-bold rounded-xl cursor-pointer ${isLight
                 ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
                 : 'bg-[#0f1117] hover:bg-[#232738] border-[#232738] text-slate-300'
-            }`}
+              }`}
           >
             Cancel
           </button>
