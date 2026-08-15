@@ -60,6 +60,7 @@ let ENTITY_INVESTIGATIONS_STORE: Record<string, EntityInvestigation> = {};
 
 // Base Health Check Route
 app.get("/", (req, res) => {
+  console.log("responded");
   res.json({
     status: "online",
     message: "FraudTrace Backend API is running.",
@@ -75,6 +76,23 @@ app.get("/", (req, res) => {
 // ==========================================
 // API ENDPOINTS
 // ==========================================
+//0. Get Server Health and Boot
+// 0. Get Server Health and Reset System Memory State
+app.get("/api/health", (req, res) => {
+  // Clear all in-memory stores
+  INITIAL_PATTERNS_STORE = [];
+  PATTERN_DETAILS_STORE = {};
+  ENTITY_INVESTIGATIONS_STORE = {};
+
+  console.log("[Health Check] Server state reset successfully.");
+
+  res.json({
+    status: "Happy",
+    state: "reset",
+    message: "Server is online and memory stores have been cleared."
+  });
+});
+
 
 // 1. Get Real-time Dashboard Summary
 app.get("/api/dashboard/summary", (req, res) => {
