@@ -58,6 +58,24 @@ export default function App() {
   const [showEntityModal, setShowEntityModal] = useState<boolean>(false);
   const [showDetectionModal, setShowDetectionModal] = useState<boolean>(false);
 
+  //Server waking up
+  const [isServerReady, setIsServerReady] = useState<boolean>(false);
+  const [isWakingServer, setIsWakingServer] = useState<boolean>(true);
+
+  const handleResetLiveState = () => {
+    setPatterns([]);
+    setSummary({
+      active_clusters: 0,
+      flagged_transactions_24h: 0,
+      accounts_under_watch: 0,
+      pending_cases: 0,
+    });
+    setTimeline([]);
+    setFlaggedAccounts([]);
+    setActivePatternDetail(null);
+    setActiveEntityInvestigation(null);
+  };
+
   // Sync URL changes with router state
   useEffect(() => {
     const handlePopState = () => {
@@ -106,6 +124,43 @@ export default function App() {
       setLoadingDashboard(false);
     }
   };
+
+  useEffect(() => {
+    const API_BASE = import.meta.env.VITE_API_URL || '';
+
+    // Proactive ping to wake Render immediately on load
+    const pingServer = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/health`);
+        if (res.ok) {
+          setIsServerReady(true);
+          console.log("Ping ");
+          setIsWakingServer(false);
+        }
+      } catch {
+        // Server still sleeping; start background polling
+        pollServerHealth();
+      }
+    };
+
+    const pollServerHealth = () => {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/health`);
+          if (res.ok) {
+            setIsServerReady(true);
+            setIsWakingServer(false);
+            clearInterval(interval);
+          }
+        } catch {
+          // Keep retrying every 5 seconds until Render boots
+        }
+      }, 5000);
+    };
+
+    pingServer();
+    fetchDashboardData();
+  }, []);
 
   // Fetch Case Investigation Data with Graceful Mock Fallback
   const fetchCaseData = async (patternId: string) => {
@@ -238,8 +293,8 @@ export default function App() {
         holder_category: accId.includes('HUB')
           ? 'Consolidation Hub'
           : accId.includes('MULE')
-          ? 'Mule Account'
-          : 'Participant',
+            ? 'Mule Account'
+            : 'Participant',
       }));
 
       const merged = [...prev];
@@ -275,8 +330,8 @@ export default function App() {
       const role = accId.includes('HUB')
         ? 'Consolidation Hub'
         : accId.includes('MULE')
-        ? 'Mule Account'
-        : 'Participant';
+          ? 'Mule Account'
+          : 'Participant';
 
       return {
         id: accId,
@@ -411,199 +466,196 @@ export default function App() {
       });
     }
     setPatterns((prev) =>
-        prev.map((p) => (p.pattern_id === activePatternId ? { ...p, status: newStatus } : p))
+      prev.map((p) => (p.pattern_id === activePatternId ? { ...p, status: newStatus } : p))
     );
   };
 
   return (
-      <div
-          className={`min-h-screen p-3 sm:p-6 lg:p-8 antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-200 relative overflow-hidden ${
-              isLight ? 'bg-slate-100 text-slate-900' : 'bg-[#0b0d14] text-[#f1f5f9]'
-          }`}
-      >
-        {/* Background Interactive ShapeGrid */}
-        <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-25 dark:opacity-20 overflow-hidden">
-          <div style={{ width: '1600px', height: '1080px', position: 'relative' }}>
-            <ShapeGrid
-                speed={0}
-                squareSize={45}
-                direction="down"
-                borderColor="#999"
-                hoverFillColor="#222"
-                shape="square"
-                hoverTrailAmount={0}
-            />
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto relative z-10">
-          {/* Top Navbar & KPI Summary */}
-          <TopBar
-              summary={
-                  summary || {
-                    active_clusters: 0,
-                    flagged_transactions_24h: 0,
-                    accounts_under_watch: 0,
-                    pending_cases: 0,
-                  }
-              }
-              onOpenDetectionModal={() => setShowDetectionModal(true)}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              activeScreen={isCaseRoute ? 'case' : 'dashboard'}
-              onNavigateHome={() => navigateTo('/')}
+    <div
+      className={`min-h-screen p-3 sm:p-6 lg:p-8 antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-200 relative overflow-hidden ${isLight ? 'bg-slate-100 text-slate-900' : 'bg-[#0b0d14] text-[#f1f5f9]'
+        }`}
+    >
+      {/* Background Interactive ShapeGrid */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center opacity-25 dark:opacity-20 overflow-hidden">
+        <div style={{ width: '1600px', height: '1080px', position: 'relative' }}>
+          <ShapeGrid
+            speed={0}
+            squareSize={45}
+            direction="down"
+            borderColor="#999"
+            hoverFillColor="#222"
+            shape="square"
+            hoverTrailAmount={0}
           />
+        </div>
+      </div>
 
-          {/* SCREEN 1: Main Dashboard (/) */}
-          {!isCaseRoute && (
-              <div className="space-y-6 animate-in fade-in duration-200">
-                {/* Center Grid: Pattern Feed (Left 65%) & Top Accounts Widget (Right 35%) */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    <PatternFeed
-                        patterns={patterns}
-                        onOpenCase={(patternId) => navigateTo(`/case/${patternId}`)}
-                        searchQuery={searchQuery}
+      <div className="max-w-7xl mx-auto relative z-10">
+        {/* Top Navbar & KPI Summary */}
+        <TopBar
+          summary={
+            summary || {
+              active_clusters: 0,
+              flagged_transactions_24h: 0,
+              accounts_under_watch: 0,
+              pending_cases: 0,
+            }
+          }
+          onOpenDetectionModal={() => setShowDetectionModal(true)}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          activeScreen={isCaseRoute ? 'case' : 'dashboard'}
+          onNavigateHome={() => navigateTo('/')}
+        />
+
+        {/* SCREEN 1: Main Dashboard (/) */}
+        {!isCaseRoute && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Center Grid: Pattern Feed (Left 65%) & Top Accounts Widget (Right 35%) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <PatternFeed
+                  patterns={patterns}
+                  onOpenCase={(patternId) => navigateTo(`/case/${patternId}`)}
+                  searchQuery={searchQuery}
+                />
+              </div>
+
+              <div className="lg:col-span-1">
+                <TopAccountsWidget accounts={flaggedAccounts} />
+              </div>
+            </div>
+
+            {/* Bottom: Risk Timeline AreaChart */}
+            <div>
+              <RiskTimeline timeline={timeline} />
+            </div>
+          </div>
+        )}
+
+        {/* SCREEN 2: Case Investigation View (/case/:patternId) */}
+        {isCaseRoute && (
+          <div className="animate-in fade-in duration-200">
+            {loadingCase ? (
+              <div
+                className={`border rounded-xl p-12 text-center space-y-3 ${isLight ? 'bg-white border-slate-200 text-slate-600' : 'bg-[#1a1d2e] border-[#2a2d3e] text-slate-400'
+                  }`}
+              >
+                <RefreshCw className="w-8 h-8 animate-spin mx-auto text-indigo-500" />
+                <div className="font-mono text-sm">Fetching pattern topology & transaction ledger...</div>
+              </div>
+            ) : caseError || !activePatternDetail ? (
+              <div
+                className={`border rounded-xl p-8 text-center text-red-500 space-y-3 ${isLight ? 'bg-white border-red-200' : 'bg-[#1a1d2e] border-red-500/30'
+                  }`}
+              >
+                <AlertCircle className="w-8 h-8 mx-auto" />
+                <div className="font-bold text-base">Case Pattern Not Found</div>
+                <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                  {caseError || 'Requested pattern ID does not exist.'}
+                </p>
+                <button
+                  onClick={() => navigateTo('/')}
+                  className="px-4 py-2 bg-indigo-600 text-white font-medium text-xs rounded-lg hover:bg-indigo-500 cursor-pointer"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            ) : (
+              <div>
+                {/* Case Header */}
+                <CaseHeader
+                  pattern={activePatternDetail}
+                  onNavigateHome={() => navigateTo('/')}
+                  onOpenEntityVerification={() => setShowEntityModal(true)}
+                />
+
+                {/* Two Column Layout: Left (60%) / Right (40%) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Left Column (60% width = 7/12 cols) */}
+                  <div className="lg:col-span-7 space-y-6">
+                    {/* Interactive Network Graph */}
+                    <NetworkGraph graph={activePatternDetail.graph} />
+
+                    {/* Paginated Transaction Table */}
+                    <TransactionTable transactions={activePatternDetail.transactions} />
+                  </div>
+
+                  {/* Right Column (40% width = 5/12 cols) */}
+                  <div className="lg:col-span-5 space-y-6">
+                    {/* LLM Brief Panel (Gemini API) */}
+                    <AiBriefPanel
+                      pattern={activePatternDetail}
+                      entity={activeEntityInvestigation}
+                    />
+
+                    {/* Case Actions & Status Panel */}
+                    <CaseActionsPanel
+                      pattern={activePatternDetail}
+                      onUpdateStatus={handleUpdateStatus}
+                      onOpenEntityVerification={() => setShowEntityModal(true)}
                     />
                   </div>
-
-                  <div className="lg:col-span-1">
-                    <TopAccountsWidget accounts={flaggedAccounts} />
-                  </div>
-                </div>
-
-                {/* Bottom: Risk Timeline AreaChart */}
-                <div>
-                  <RiskTimeline timeline={timeline} />
                 </div>
               </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {/* SCREEN 2: Case Investigation View (/case/:patternId) */}
-          {isCaseRoute && (
-              <div className="animate-in fade-in duration-200">
-                {loadingCase ? (
-                    <div
-                        className={`border rounded-xl p-12 text-center space-y-3 ${
-                            isLight ? 'bg-white border-slate-200 text-slate-600' : 'bg-[#1a1d2e] border-[#2a2d3e] text-slate-400'
-                        }`}
-                    >
-                      <RefreshCw className="w-8 h-8 animate-spin mx-auto text-indigo-500" />
-                      <div className="font-mono text-sm">Fetching pattern topology & transaction ledger...</div>
-                    </div>
-                ) : caseError || !activePatternDetail ? (
-                    <div
-                        className={`border rounded-xl p-8 text-center text-red-500 space-y-3 ${
-                            isLight ? 'bg-white border-red-200' : 'bg-[#1a1d2e] border-red-500/30'
-                        }`}
-                    >
-                      <AlertCircle className="w-8 h-8 mx-auto" />
-                      <div className="font-bold text-base">Case Pattern Not Found</div>
-                      <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                        {caseError || 'Requested pattern ID does not exist.'}
-                      </p>
-                      <button
-                          onClick={() => navigateTo('/')}
-                          className="px-4 py-2 bg-indigo-600 text-white font-medium text-xs rounded-lg hover:bg-indigo-500 cursor-pointer"
-                      >
-                        Return to Dashboard
-                      </button>
-                    </div>
-                ) : (
-                    <div>
-                      {/* Case Header */}
-                      <CaseHeader
-                          pattern={activePatternDetail}
-                          onNavigateHome={() => navigateTo('/')}
-                          onOpenEntityVerification={() => setShowEntityModal(true)}
-                      />
+        {/* Entity Verification & Telematics Modal */}
+        {showEntityModal && activeEntityInvestigation && activePatternDetail && (
+          <EntityVerificationModal
+            entity={activeEntityInvestigation}
+            patternId={activePatternDetail.pattern_id}
+            onClose={() => setShowEntityModal(false)}
+          />
+        )}
 
-                      {/* Two Column Layout: Left (60%) / Right (40%) */}
-                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        {/* Left Column (60% width = 7/12 cols) */}
-                        <div className="lg:col-span-7 space-y-6">
-                          {/* Interactive Network Graph */}
-                          <NetworkGraph graph={activePatternDetail.graph} />
+        {/* ML Model Detection Sandbox Modal */}
+        {showDetectionModal && (
+          <RunDetectionModal
+            onClose={() => setShowDetectionModal(false)}
+            onPatternDetected={handlePatternDetected}
+            onOpenCase={(newPatternId) => {
+              navigateTo(`/case/${newPatternId}`);
+            }}
+          />
+        )}
 
-                          {/* Paginated Transaction Table */}
-                          <TransactionTable transactions={activePatternDetail.transactions} />
-                        </div>
+        {/* Welcome Modal on Load */}
+        {showWelcome && (
+          <WelcomeModal
+            onClose={() => {
+              setShowWelcome(false);
+            }}
+            onRefreshData={handleResetLiveState}
+          />
+        )}
 
-                        {/* Right Column (40% width = 5/12 cols) */}
-                        <div className="lg:col-span-5 space-y-6">
-                          {/* LLM Brief Panel (Gemini API) */}
-                          <AiBriefPanel
-                              pattern={activePatternDetail}
-                              entity={activeEntityInvestigation}
-                          />
-
-                          {/* Case Actions & Status Panel */}
-                          <CaseActionsPanel
-                              pattern={activePatternDetail}
-                              onUpdateStatus={handleUpdateStatus}
-                              onOpenEntityVerification={() => setShowEntityModal(true)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                )}
-              </div>
-          )}
-
-          {/* Entity Verification & Telematics Modal */}
-          {showEntityModal && activeEntityInvestigation && activePatternDetail && (
-              <EntityVerificationModal
-                  entity={activeEntityInvestigation}
-                  patternId={activePatternDetail.pattern_id}
-                  onClose={() => setShowEntityModal(false)}
-              />
-          )}
-
-          {/* ML Model Detection Sandbox Modal */}
-          {showDetectionModal && (
-              <RunDetectionModal
-                  onClose={() => setShowDetectionModal(false)}
-                  onPatternDetected={handlePatternDetected}
-                  onOpenCase={(newPatternId) => {
-                    navigateTo(`/case/${newPatternId}`);
-                  }}
-              />
-          )}
-
-          {/* Welcome Modal on Load */}
-          {showWelcome && (
-              <WelcomeModal
-                  onClose={() => {
-                    setShowWelcome(false);
-                  }}
-              />
-          )}
-
-          {/* Professional Polish Footer */}
-          <footer
-              className={`mt-8 border-t p-3 px-1 flex flex-col sm:flex-row items-center justify-between text-[11px] gap-2 transition-colors ${
-                  isLight
-                      ? 'border-slate-200 text-slate-500'
-                      : 'border-[#232738] text-slate-500'
-              }`}
-          >
-            <div className="flex items-center gap-4">
+        {/* Professional Polish Footer */}
+        <footer
+          className={`mt-8 border-t p-3 px-1 flex flex-col sm:flex-row items-center justify-between text-[11px] gap-2 transition-colors ${isLight
+            ? 'border-slate-200 text-slate-500'
+            : 'border-[#232738] text-slate-500'
+            }`}
+        >
+          <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 uppercase tracking-tight font-bold text-emerald-600 dark:text-[#22c55e]">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>API Connectivity Stable</span>
             </span>
-              <span className={`hidden md:inline opacity-60 border-l pl-4 ${isLight ? 'border-slate-200' : 'border-[#232738]'}`}>
+            <span className={`hidden md:inline opacity-60 border-l pl-4 ${isLight ? 'border-slate-200' : 'border-[#232738]'}`}>
               Region: AP-SOUTH-1 (Mumbai)
             </span>
-            </div>
-            <div className="flex items-center gap-4 font-semibold">
-              <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>FIN-GUARD ML Engine v2.4 PRO</span>
-              <span className={`border-l pl-4 ${isLight ? 'border-slate-200 text-slate-500' : 'border-[#232738] text-slate-500'}`}>
+          </div>
+          <div className="flex items-center gap-4 font-semibold">
+            <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>FIN-GUARD ML Engine v2.4 PRO</span>
+            <span className={`border-l pl-4 ${isLight ? 'border-slate-200 text-slate-500' : 'border-[#232738] text-slate-500'}`}>
               Session Secure
             </span>
-            </div>
-          </footer>
-        </div>
+          </div>
+        </footer>
       </div>
+    </div>
   );
 }

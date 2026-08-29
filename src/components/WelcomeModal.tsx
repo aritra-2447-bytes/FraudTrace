@@ -4,9 +4,10 @@ import { useTheme } from '../context/ThemeContext';
 
 interface WelcomeModalProps {
   onClose: () => void;
+  onRefreshData?: () => void;
 }
 
-export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
+export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose, onRefreshData }) => {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
@@ -22,13 +23,32 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
   { "from": "ACC-001", "to": "ACC-002", "amount": 98000, "timestamp": "2024-01-16T10:00:00Z" },
   { "from": "ACC-003", "to": "ACC-002", "amount": 95000, "timestamp": "2024-01-16T10:15:00Z" }
 ]`;
+  const API_BASE = import.meta.env.VITE_API_URL || ''
+  const handlegetStarted = () => {
+    onClose();
+
+    fetch(`${API_BASE}/api/health`)
+      .then((res) => {
+        if (!res.ok) {
+          console.warn("Server is not healthy...");
+        }
+        if (res.ok) {
+          console.log('From Server:', res);
+          if (onRefreshData) {
+            onRefreshData();
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Server health check failed:', err);
+      })
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
       <div
-        className={`border rounded-2xl max-w-[560px] w-full p-6 space-y-5 my-auto shadow-2xl animate-in fade-in zoom-in duration-200 relative ${
-          isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#161926] border-[#232738] text-slate-200'
-        }`}
+        className={`border rounded-2xl max-w-[560px] w-full p-6 space-y-5 my-auto shadow-2xl animate-in fade-in zoom-in duration-200 relative ${isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#161926] border-[#232738] text-slate-200'
+          }`}
       >
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -44,10 +64,9 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
             </div>
           </div>
           <button
-            onClick={onClose}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              isLight ? 'hover:bg-slate-100 text-slate-400' : 'hover:bg-[#232738] text-slate-400'
-            }`}
+            onClick={handlegetStarted}
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isLight ? 'hover:bg-slate-100 text-slate-400' : 'hover:bg-[#232738] text-slate-400'
+              }`}
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -56,9 +75,8 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
 
         {/* Section 1 - What this is */}
         <div
-          className={`p-3.5 rounded-xl text-xs leading-relaxed border ${
-            isLight ? 'bg-indigo-50/50 border-indigo-100 text-slate-700' : 'bg-indigo-950/30 border-indigo-500/20 text-slate-300'
-          }`}
+          className={`p-3.5 rounded-xl text-xs leading-relaxed border ${isLight ? 'bg-indigo-50/50 border-indigo-100 text-slate-700' : 'bg-indigo-950/30 border-indigo-500/20 text-slate-300'
+            }`}
         >
           <p>
             <strong className=" font-semibold">FraudTrace</strong> detects financial crime patterns (smurfing, layering, round-tripping, mule chains) that are invisible at the transaction level but emerge across accounts and time.
@@ -70,7 +88,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
           <h3 className="text-xs font-semibold uppercase tracking-wider text-indigo-400">
             How to{' '}
             <span className="bg-amber-400 text-black px-1 py-0.5 rounded">
-            Get Started
+              Get Started
             </span>
           </h3>
           <ol className="space-y-2">
@@ -91,11 +109,10 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
             Expected Transaction JSON Format
           </span>
           <pre
-            className={`p-3 rounded-xl font-mono text-[11px] leading-relaxed overflow-x-auto border ${
-              isLight
-                ? 'bg-slate-50 border-slate-200 text-slate-800'
-                : 'bg-[#0f1117] border-[#232738] text-slate-300'
-            }`}
+            className={`p-3 rounded-xl font-mono text-[11px] leading-relaxed overflow-x-auto border ${isLight
+              ? 'bg-slate-50 border-slate-200 text-slate-800'
+              : 'bg-[#0f1117] border-[#232738] text-slate-300'
+              }`}
           >
             {jsonExample}
           </pre>
@@ -107,7 +124,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ onClose }) => {
         {/* CTA Button */}
         <div className="pt-2 flex justify-center">
           <button
-            onClick={onClose}
+            onClick={handlegetStarted}
             className="w-full sm:w-auto bg-amber-500 hover:bg-amber-500 hover:border-amber-500 text-black font-bold rounded-xl px-8 py-2.5 text-sm transition-all shadow-lg shadow-indigo-600/20 cursor-pointer flex items-center justify-center gap-2">
             Get Started
             <ArrowRight className="w-4 h-4" />
